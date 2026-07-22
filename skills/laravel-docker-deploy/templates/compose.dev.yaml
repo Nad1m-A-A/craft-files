@@ -1,0 +1,36 @@
+name: __COMPOSE_DEV_NAME__
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    ports:
+      - "__DEV_APP_PORT__:80"
+      - "__DEV_VITE_PORT__:5173"
+    volumes:
+      - .:__CONTAINER_WORKDIR__
+      - __CONTAINER_WORKDIR__/vendor
+      - __CONTAINER_WORKDIR__/node_modules
+    env_file:
+      - .env
+    depends_on:
+      mysql:
+        condition: service_healthy
+  mysql:
+    image: mysql:__MYSQL_VERSION__
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE}
+      MYSQL_USER: ${DB_USERNAME}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+    volumes:
+      - mysql-dev-data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+volumes:
+  mysql-dev-data:

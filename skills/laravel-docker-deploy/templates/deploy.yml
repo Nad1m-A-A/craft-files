@@ -1,0 +1,66 @@
+name: Deploy
+on:
+  push:
+    branches: [__DEPLOY_BRANCH__]
+    paths-ignore:
+      - '.github/workflows/rollback.yml'
+      - '**.md'
+      - 'AGENTS.md'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: shivammathur/setup-php@v2
+        with: { php-version: '__PHP_VERSION__' }
+      - run: composer install
+      # - run: php artisan test --compact
+      - uses: actions/setup-node@v4
+        with: { node-version: '__NODE_VERSION__' }
+      - run: npm ci
+      - run: npm run build
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile.prod
+          push: true
+          # latest = current prod; sha = immutable tag for rollback
+          tags: |
+            __GHCR_IMAGE__:latest
+            __GHCR_IMAGE__:${{ github.sha }}
+
+      - name: Tailscale
+        uses: tailscale/github-action@v4
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:deploy
+
+      - uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd __SERVER_DIR__
+            git pull origin __DEPLOY_BRANCH__
+            export APP_IMAGE_TAG=${{ github.sha }}
+            echo "$APP_IMAGE_TAG" > .app_image_tag
+            docker compose -f compose.prod.yaml pull app
+            docker compose -f compose.prod.yaml up -d
+            docker compose -f compose.prod.yaml exec app php artisan migrate --force

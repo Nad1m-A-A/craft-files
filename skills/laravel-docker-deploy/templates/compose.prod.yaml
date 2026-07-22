@@ -1,0 +1,40 @@
+name: __COMPOSE_PROD_NAME__
+services:
+  app:
+    # APP_IMAGE_TAG = full git SHA from CI (see .app_image_tag). Default latest for local use.
+    image: __GHCR_IMAGE__:${APP_IMAGE_TAG:-latest}
+    secrets:
+      - db_password
+      - db_root_password
+    ports:
+      - "127.0.0.1:__PROD_HOST_PORT__:80"
+    env_file:
+      - .env
+      - .env.production
+    depends_on:
+      mysql:
+        condition: service_healthy
+  mysql:
+    image: mysql:__MYSQL_VERSION__
+    secrets:
+      - db_password
+      - db_root_password
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE}
+      MYSQL_USER: ${DB_USERNAME}
+      MYSQL_PASSWORD_FILE: /run/secrets/db_password
+      MYSQL_ROOT_PASSWORD_FILE: /run/secrets/db_root_password
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+volumes:
+  mysql-data:
+secrets:
+  db_password:
+    file: ./secrets/db_password.txt
+  db_root_password:
+    file: ./secrets/db_root_password.txt

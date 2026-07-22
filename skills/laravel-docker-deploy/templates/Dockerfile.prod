@@ -1,0 +1,76 @@
+# syntax: multi-stage production build
+# Goal: heavy build tools live in throwaway stages; the final image ships only runtime + artifacts.
+
+# ----------------------------------------------------------------------------
+# Stage 1: build — install PHP deps WITHOUT dev tooling. compile Vite assets.
+# ----------------------------------------------------------------------------
+FROM php:__PHP_VERSION__-cli AS build
+
+RUN curl -fsSL https://deb.nodesource.com/setup___NODE_VERSION__.x | bash - \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends \
+    nodejs \
+    unzip \
+    git \
+    libzip-dev \
+    && docker-php-ext-install zip \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+
+WORKDIR /app
+
+# Install deps first (cacheable), defer autoload until app code is present.
+COPY composer.json composer.lock ./
+RUN composer install --no-dev --no-scripts --no-autoloader --prefer-dist
+
+# Copy app, then build an optimized classmap for production.
+COPY . .
+RUN composer dump-autoload --optimize --no-dev
+# Output we care about: /app/vendor
+
+# Manifests first so editing source code doesn't bust the npm install cache layer.
+COPY package.json package-lock.json ./
+RUN npm ci
+
+# Vite needs the real source (resources/, vite.config.*) to build.
+COPY . .
+RUN php artisan wayfinder:generate --with-form -vvv
+RUN npm run build
+# Output we care about: /app/public/build
+
+# ----------------------------------------------------------------------------
+# Stage 2: runtime — lean image. No Node, no npm, no Composer.
+# ----------------------------------------------------------------------------
+FROM php:__PHP_VERSION__-apache AS runtime
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libzip-dev libicu-dev libpng-dev libonig-dev \
+    && docker-php-ext-install pdo_mysql zip intl bcmath gd \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Serve Laravel's public/ as the Apache docroot and enable pretty URLs.
+RUN sed -ri -e 's!/var/www/html!__CONTAINER_WORKDIR__/public!g' /etc/apache2/sites-available/*.conf \
+    && sed -ri -e 's!AllowOverride None!AllowOverride All!g' /etc/apache2/sites-available/*.conf \
+    && a2enmod rewrite
+
+WORKDIR __CONTAINER_WORKDIR__
+
+# App source (node_modules, vendor, public/build, .env excluded via .dockerignore).
+COPY . .
+
+# Pull ONLY the finished artifacts out of the build stages.
+COPY --from=build /app/vendor ./vendor
+COPY --from=build /app/public/build ./public/build
+
+RUN chown -R www-data:www-data storage bootstrap/cache database \
+    && chmod -R 775 storage bootstrap/cache database
+
+COPY docker/entrypoint.prod.sh /usr/local/bin/entrypoint.prod.sh
+RUN chmod +x /usr/local/bin/entrypoint.prod.sh
+ENTRYPOINT ["/usr/local/bin/entrypoint.prod.sh"]
+CMD ["apache2-foreground"]
+
+EXPOSE 80
