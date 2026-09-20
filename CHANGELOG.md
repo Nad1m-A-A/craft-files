@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed
+
+- Scaffold now writes Dockerfiles, Compose, and the entrypoint under `docker/`. `.dockerignore` stays at the project root; GitHub Actions stay in `.github/workflows/`.
+
 ## [2026-09-20]
 
 ### Changed

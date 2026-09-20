@@ -33,7 +33,7 @@ jobs:
             image:
 __IMAGE_FILTER_PATHS__
             compose:
-              - 'compose.prod.yaml'
+              - 'docker/compose.prod.yaml'
 
   deploy:
     needs: [test, changes]
@@ -56,7 +56,7 @@ __IMAGE_FILTER_PATHS__
         if: needs.changes.outputs.image == 'true'
         with:
           context: .
-          file: Dockerfile.prod
+          file: docker/Dockerfile.prod
           push: true
           cache-from: type=gha
           cache-to: type=gha,mode=max
@@ -88,6 +88,6 @@ __IMAGE_FILTER_PATHS__
             else
               export APP_IMAGE_TAG=latest
             fi
-            docker compose -f compose.prod.yaml pull app
-            docker compose -f compose.prod.yaml up -d__COMPOSE_UP_SCALE__
-            docker compose -f compose.prod.yaml exec app php artisan migrate --force
+            docker compose -f docker/compose.prod.yaml pull app
+            docker compose -f docker/compose.prod.yaml up -d__COMPOSE_UP_SCALE__
+            docker compose -f docker/compose.prod.yaml exec app php artisan migrate --force

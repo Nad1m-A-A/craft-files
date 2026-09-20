@@ -9,23 +9,23 @@ services:
     ports:
       - "127.0.0.1:__PROD_HOST_PORT__:80"
     env_file:
-      - .env
-      - .env.production
+      - ../.env
+      - ../.env.production
     depends_on:
       mysql:
         condition: service_healthy
     restart: unless-stopped
 
   # Same image as app so deploys always run matching code/env. Scale with:
-  # docker compose -f compose.prod.yaml up -d --scale worker=__WORKER_REPLICAS__
+  # docker compose -f docker/compose.prod.yaml up -d --scale worker=__WORKER_REPLICAS__
   worker:
     image: __GHCR_IMAGE__:${APP_IMAGE_TAG:-latest}
     secrets:
       - db_password
       - db_root_password
     env_file:
-      - .env
-      - .env.production
+      - ../.env
+      - ../.env.production
     command: php artisan queue:work --sleep=1 --tries=3 --max-time=3600
     depends_on:
       mysql:
@@ -39,8 +39,8 @@ services:
       - db_password
       - db_root_password
     env_file:
-      - .env
-      - .env.production
+      - ../.env
+      - ../.env.production
     command: php artisan schedule:work
     depends_on:
       mysql:
@@ -71,6 +71,6 @@ volumes:
 
 secrets:
   db_password:
-    file: ./secrets/db_password.txt
+    file: ../secrets/db_password.txt
   db_root_password:
-    file: ./secrets/db_root_password.txt
+    file: ../secrets/db_root_password.txt

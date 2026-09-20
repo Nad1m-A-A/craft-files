@@ -55,14 +55,16 @@ Do **not** ask the user to paste private keys or passwords into chat. Checklist 
 
 ### Step 2 — Generate files
 
-Read templates under this skill’s `templates/` directory. Substitute placeholders (see below). Write into the **target project root** (or paths the user specified).
+Read templates under this skill’s `templates/` directory. Substitute placeholders (see below). Write into the **target project** (or paths the user specified).
+
+Layout: GitHub Actions stay in `.github/workflows/`; `.dockerignore` stays at the project root (build context is the project root); Dockerfiles, Compose, and the entrypoint go in `docker/`. In Compose files, `env_file`, `secrets`, volumes, and `build.context` use `..` so they still point at the project root.
 
 | Output path | Template |
 |-------------|----------|
-| `Dockerfile.prod` | `templates/Dockerfile.prod` |
-| `Dockerfile.dev` | `templates/Dockerfile.dev` |
-| `compose.prod.yaml` | `templates/compose.prod.yaml` |
-| `compose.dev.yaml` | `templates/compose.dev.yaml` |
+| `docker/Dockerfile.prod` | `templates/Dockerfile.prod` |
+| `docker/Dockerfile.dev` | `templates/Dockerfile.dev` |
+| `docker/compose.prod.yaml` | `templates/compose.prod.yaml` |
+| `docker/compose.dev.yaml` | `templates/compose.dev.yaml` |
 | `.dockerignore` | `templates/dockerignore` |
 | `docker/entrypoint.prod.sh` | `templates/entrypoint.prod.sh` |
 | `.github/workflows/deploy.yml` | `templates/deploy.yml` |
@@ -87,11 +89,11 @@ Always include (skill / image files):
 
 | Path | `on.push.paths` | image filter |
 |------|-----------------|--------------|
-| `docker/**` | yes | yes |
-| `Dockerfile*` | yes | no |
-| `Dockerfile.prod` | yes (covered by `Dockerfile*`) | yes |
+| `docker/**` | yes | no (`docker/compose.prod.yaml` would otherwise count as an image change) |
+| `docker/Dockerfile.prod` | yes (covered by `docker/**`) | yes |
+| `docker/entrypoint.prod.sh` | yes (covered by `docker/**`) | yes |
 | `.dockerignore` | yes | yes |
-| `compose.prod.yaml` | yes | no (compose filter instead) |
+| `docker/compose.prod.yaml` | yes (covered by `docker/**`) | no (compose filter instead) |
 | `.github/workflows/deploy.yml` | yes | no |
 
 If these **exist** in the project, add them:
@@ -124,7 +126,7 @@ Replace `__DEPLOY_PATHS__` with the `on.push.paths` list (2-space indent under `
 
 Replace `__IMAGE_FILTER_PATHS__` with the image-filter list (under `image:`, each line `              - '…'`).
 
-Keep the `compose:` filter as `compose.prod.yaml` only.
+Keep the `compose:` filter as `docker/compose.prod.yaml` only.
 
 Quote every path. Do not invent paths that are not on disk (except the always-include skill files you are about to write).
 
@@ -180,4 +182,4 @@ NodeSource URLs look like `setup___NODE_VERSION__.x` on purpose: after substitut
 - Keep GHA Buildx cache (`type=gha,mode=max`) and the image-vs-compose `changes` job on deploy.
 - Prod app binds `127.0.0.1:__PROD_HOST_PORT__:80` (reverse proxy on host).
 - Comments in generated files should stay short and practical (match template tone).
-- If the project already has Docker/CI files, diff against templates and ask before overwriting.
+- If the project already has Docker/CI files, diff against templates and ask before overwriting. If Dockerfiles or Compose currently live at the project root, ask before moving them into `docker/`.

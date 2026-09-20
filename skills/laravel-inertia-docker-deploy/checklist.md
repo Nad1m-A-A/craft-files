@@ -33,7 +33,7 @@ Also add any extra secrets named during the interview.
 
 - [ ] Directory exists; git remote points at this repo; branch `__DEPLOY_BRANCH__` checked out
 - [ ] Docker + Docker Compose plugin installed
-- [ ] Files present (from git pull): `compose.prod.yaml`, and after first deploy the image pull works
+- [ ] Files present (from git pull): `docker/compose.prod.yaml`, and after first deploy the image pull works
 - [ ] `.env` and `.env.production` created on the server (not in git)
 - [ ] If using Docker secrets:
   - [ ] `secrets/db_password.txt` (single line, no extra newline issues)
@@ -61,5 +61,5 @@ Also add any extra secrets named during the interview.
 ## Local / dev (optional)
 
 - [ ] Copy `.env.example` → `.env` with `DB_*` matching compose.dev
-- [ ] `npm run docker:dev:up` (or `docker compose -f compose.dev.yaml up -d --build`)
+- [ ] `npm run docker:dev:up` (or `docker compose -f docker/compose.dev.yaml up -d --build`)
 - [ ] App on `http://localhost:__DEV_APP_PORT__`
