@@ -19,6 +19,7 @@ skills/           # Cursor Agent skills + templates
 |------|------------|
 | [`learning-plans/`](learning-plans/) | Step-by-step plans (Docker, testing, …) |
 | [`skills/`](skills/) | Skills you can drop into Cursor and run |
+| [`CHANGELOG.md`](CHANGELOG.md) | Notable changes |
 
 ---
 

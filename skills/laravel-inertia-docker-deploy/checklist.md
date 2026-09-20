@@ -44,8 +44,11 @@ Also add any extra secrets named during the interview.
 
 ## First bring-up
 
-- [ ] Push to `__DEPLOY_BRANCH__` (or run workflow) and confirm **test** + **deploy** jobs pass
-- [ ] On server: container healthy; `php artisan migrate --force` ran
+- [ ] Push to `__DEPLOY_BRANCH__` (or run workflow) and confirm **test** + **changes** + **deploy** jobs pass
+- [ ] Image build ran only if app/image files changed; compose-only pushes skip build-push and reuse `.app_image_tag`
+- [ ] On server: `app` healthy; `php artisan migrate --force` ran
+- [ ] If worker enabled: `worker` container is `queue:work` (replicas: `__WORKER_REPLICAS__`)
+- [ ] If scheduler enabled: `scheduler` container is `schedule:work`
 - [ ] Hit the app through the reverse proxy
 - [ ] Note a good SHA from GHCR tags for a dry-run rollback
 
@@ -53,6 +56,7 @@ Also add any extra secrets named during the interview.
 
 - [ ] Actions → **Rollback** → workflow_dispatch with a previous full SHA
 - [ ] Confirm `.app_image_tag` updates and app serves the older image
+- [ ] If worker replicas > 1, rollback `up` still used `--scale worker=__WORKER_REPLICAS__`
 
 ## Local / dev (optional)
 

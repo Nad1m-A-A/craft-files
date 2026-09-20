@@ -29,4 +29,4 @@ jobs:
             export APP_IMAGE_TAG=${{ inputs.sha }}
             echo "$APP_IMAGE_TAG" > .app_image_tag
             docker compose -f compose.prod.yaml pull app
-            docker compose -f compose.prod.yaml up -d
+            docker compose -f compose.prod.yaml up -d__COMPOSE_UP_SCALE__

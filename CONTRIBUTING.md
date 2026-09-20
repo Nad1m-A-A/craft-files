@@ -18,3 +18,5 @@ For larger ideas, open an issue first so we can align before you spend time on a
 - Fixes, clarifications, and small cleanups
 
 Keep changes focused. Match the existing style: simple, practical, easy to adapt.
+
+When a change would matter to someone using a plan or skill, add a line under `## [Unreleased]` in [CHANGELOG.md](CHANGELOG.md).

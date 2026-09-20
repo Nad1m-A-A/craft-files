@@ -16,6 +16,34 @@ services:
     depends_on:
       mysql:
         condition: service_healthy
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    volumes:
+      - .:__CONTAINER_WORKDIR__
+      - __CONTAINER_WORKDIR__/vendor
+      - __CONTAINER_WORKDIR__/node_modules
+    env_file:
+      - .env
+    command: php artisan queue:work --sleep=1 --tries=3 --max-time=3600
+    depends_on:
+      mysql:
+        condition: service_healthy
+  scheduler:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    volumes:
+      - .:__CONTAINER_WORKDIR__
+      - __CONTAINER_WORKDIR__/vendor
+      - __CONTAINER_WORKDIR__/node_modules
+    env_file:
+      - .env
+    command: php artisan schedule:work
+    depends_on:
+      mysql:
+        condition: service_healthy
   mysql:
     image: mysql:__MYSQL_VERSION__
     environment:
